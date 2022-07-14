@@ -82,6 +82,28 @@ func (filter *Filter) Validate() error {
 	if filter.EventFormat != "" && filter.EventFormat != "client" && filter.EventFormat != "federation" {
 		return errors.New("Bad event_format value. Must be one of [\"client\", \"federation\"]")
 	}
+	if result := filter.Room.Timeline.Validate(); result != nil {
+		return result
+	}
+	return nil
+}
+
+func (filter *RoomEventFilter) Validate() error {
+	if filter.Rooms != nil {
+		for _, roomID := range *filter.Rooms {
+			if !isValidRoomID(roomID) {
+				return errors.New("Bad room value. Must be in the form !localpart:domain")
+			}
+		}
+	}
+	if filter.Senders != nil {
+		for _, userID := range *filter.Senders {
+			if !isValidUserID(userID) {
+				return errors.New("Bad user value. Must be in the form @localpart:domain")
+			}
+		}
+	}
+
 	return nil
 }
 

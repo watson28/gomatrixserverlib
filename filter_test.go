@@ -2,6 +2,7 @@ package gomatrixserverlib
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -57,4 +58,65 @@ func Test_Filter(t *testing.T) {
 		})
 	}
 
+}
+
+func TestFilterValidate(t *testing.T) {
+	filterInvalidTimelineRoom := DefaultFilter()
+	filterInvalidTimelineRoom.Room.Timeline.Rooms = &[]string{"not_a_room_id"}
+
+	filterInvalidTimelineSender := DefaultFilter()
+	filterInvalidTimelineSender.Room.Timeline.Senders = &[]string{"not_a_sender_id"}
+
+	filterValidTimelineRoom := DefaultFilter()
+	filterValidTimelineRoom.Room.Timeline.Rooms = &[]string{"!home:matrix.org"}
+
+	filterValidTimelineSender := DefaultFilter()
+	filterValidTimelineSender.Room.Timeline.Senders = &[]string{"@alice:matrix.org"}
+
+	tests := []struct {
+		name  string
+		input Filter
+		want  error
+	}{
+		{
+			name:  "default filter",
+			input: DefaultFilter(),
+			want:  nil,
+		},
+		{
+			name:  "invalid timeline room",
+			input: filterInvalidTimelineRoom,
+			want:  errors.New("Bad room value. Must be in the form !localpart:domain"),
+		},
+		{
+			name:  "invalid timeline sender",
+			input: filterInvalidTimelineSender,
+			want:  errors.New("Bad user value. Must be in the form @localpart:domain"),
+		},
+		{
+			name:  "valid timeline room",
+			input: filterValidTimelineRoom,
+			want:  nil,
+		},
+		{
+			name:  "valid timeline sender",
+			input: filterValidTimelineSender,
+			want:  nil,
+		},
+	}
+
+	extractCmpValue := func(err error) string {
+		if err != nil {
+			return err.Error()
+		}
+		return ""
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.input.Validate(); extractCmpValue(tt.want) != extractCmpValue(got) {
+				t.Errorf("Expected \"%+v\"\ngot \"%+v\"", tt.want, got)
+			}
+		})
+	}
 }
